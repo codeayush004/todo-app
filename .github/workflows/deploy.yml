@@ -18,27 +18,26 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Azure CLI setup
-      uses: azure/cli@v2
-
     - name: Log in to ACR
-      run: az acr login --name ${{ secrets.ACR_NAME }}
+      run: |
+        az acr login --name ${{ secrets.ACR_NAME }}
 
     - name: Build and push Docker image
       run: |
         IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/todo-app:${{ github.sha }}
+        echo "IMAGE=$IMAGE" >> $GITHUB_ENV
         docker build -t $IMAGE .
         docker push $IMAGE
-        echo "IMAGE=$IMAGE" >> $GITHUB_ENV
 
     - name: Set AKS context
       run: |
-        az aks get-credentials --resource-group ${{ secrets.AZ_RESOURCE_GROUP }} --name ${{ secrets.AKS_NAME }} --overwrite-existing
+        az aks get-credentials \
+          --resource-group ${{ secrets.AZ_RESOURCE_GROUP }} \
+          --name ${{ secrets.AKS_NAME }} \
+          --overwrite-existing
 
-    - name: Update image in deployment
+    - name: Deploy updated image to AKS
       run: |
-        kubectl set image deployment/todo-backend todo=${{ env.IMAGE }} --namespace default || kubectl apply -f k8s/
-
-    - name: Apply manifests
-      run: |
+        kubectl set image deployment/todo-backend todo=${{ env.IMAGE }} --namespace default || true
         kubectl apply -f k8s/
+        kubectl rollout status deployment/todo-backend
