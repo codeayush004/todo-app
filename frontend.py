@@ -4,7 +4,7 @@ import requests
 
 st.set_page_config(page_title="Todo App", page_icon="📝", layout="centered")
 
-st.title("📝 Todo App (AKS + GitOps)")
+st.title("📝 Todo App ")
 st.caption("A minimal Streamlit UI connected to your FastAPI backend")
 
 # 🧠 Replace this with your backend’s public IP if running remotely
