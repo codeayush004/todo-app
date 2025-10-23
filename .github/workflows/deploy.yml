@@ -10,45 +10,56 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: 🧾 Checkout repository
       uses: actions/checkout@v3
 
-    - name: Log in to Azure
+    # ✅ Login to Azure using your Service Principal JSON
+    - name: 🔐 Log in to Azure
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Log in to ACR
+    # ✅ Login to Azure Container Registry
+    - name: 🐳 Log in to ACR
       uses: azure/docker-login@v2
       with:
         login-server: ${{ secrets.ACR_NAME }}.azurecr.io
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
-    - name: Build and push Docker image
+    # ✅ Build and push image with unique tag (commit SHA)
+    - name: 🏗️ Build and Push Docker Image
       run: |
         IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/todo-app:${{ github.sha }}
         echo "IMAGE=$IMAGE" >> $GITHUB_ENV
-        echo "🏗️  Building Docker image: $IMAGE"
+        echo "🚧 Building image: $IMAGE"
         docker build -t $IMAGE .
 
-        echo "🔄 Pushing image to ACR..."
+        echo "🚀 Pushing image to ACR..."
         for i in {1..5}; do
-          docker push $IMAGE && break || (echo "⚠️ Push failed, retrying ($i/5)..." && sleep 15)
+          docker push $IMAGE && break || (echo "⚠️ Push failed (attempt $i/5)... retrying in 15s" && sleep 15)
         done
 
-    - name: Set AKS context
+    # ✅ Connect to AKS Cluster
+    - name: 🌐 Set AKS Context
       run: |
         az aks get-credentials \
           --resource-group ${{ secrets.AZ_RESOURCE_GROUP }} \
           --name ${{ secrets.AKS_NAME }} \
           --overwrite-existing
 
-    - name: Deploy updated image to AKS
+    # ✅ Deploy new image to AKS dynamically
+    - name: 🚀 Deploy to AKS
       run: |
-        echo "🚀 Updating deployment image in AKS..."
-        kubectl set image deployment/todo-backend todo=${{ env.IMAGE }} --namespace default || true
+        echo "🔄 Updating AKS deployment image..."
+        kubectl set image deployment/todo-backend todo=${{ env.IMAGE }} --namespace default --record
+
+        echo "📦 Applying manifests..."
         kubectl apply -f k8s/
-        echo "⏳ Waiting for rollout to complete..."
+
+        echo "⏳ Waiting for rollout..."
         kubectl rollout status deployment/todo-backend --timeout=180s
+
         echo "✅ Deployment successful!"
+        echo "🔍 Current live image:"
+        kubectl get deployment todo-backend -o=jsonpath='{.spec.template.spec.containers[0].image}'
