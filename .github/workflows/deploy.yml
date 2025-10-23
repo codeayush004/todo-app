@@ -8,32 +8,16 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
 
     steps:
-    # Step 1: Checkout the repository
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # Step 2: Log in to Azure using your service principal JSON
     - name: Log in to Azure
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    # Step 3: Ensure ACR public access (to prevent DNS issues)
-    - name: Ensure ACR public access (temporary)
-      run: |
-        echo "🔍 Checking ACR public access..."
-        ACCESS=$(az acr show -n ${{ secrets.ACR_NAME }} --query publicNetworkAccess -o tsv)
-        if [ "$ACCESS" != "Enabled" ]; then
-          echo "🌐 Enabling temporary public access for GitHub runner..."
-          az acr update -n ${{ secrets.ACR_NAME }} --public-network-enabled true
-        else
-          echo "✅ ACR already has public access."
-        fi
-
-    # Step 4: Log in to Azure Container Registry
     - name: Log in to ACR
       uses: azure/docker-login@v2
       with:
@@ -41,7 +25,6 @@ jobs:
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
-    # Step 5: Build and push Docker image
     - name: Build and push Docker image
       run: |
         IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/todo-app:${{ github.sha }}
@@ -51,30 +34,18 @@ jobs:
 
         echo "🔄 Pushing image to ACR..."
         for i in 1 2 3; do
-          docker push $IMAGE && echo "✅ Push succeeded" && break || (echo "⚠️  Push failed, retrying ($i/3)..." && sleep 15)
+          docker push $IMAGE && echo "✅ Push succeeded" && break || (echo "⚠️  Push failed, retrying ($i/3)..." && sleep 10)
         done
 
-    # Step 6: Set AKS context
     - name: Set AKS context
       run: |
-        echo "🔑 Setting AKS context..."
         az aks get-credentials --resource-group ${{ secrets.AZ_RESOURCE_GROUP }} --name ${{ secrets.AKS_NAME }} --overwrite-existing
-        echo "✅ AKS context configured."
 
-    # Step 7: Deploy updated image to AKS
     - name: Deploy updated image to AKS
       run: |
         echo "🚀 Updating deployment image in AKS..."
         kubectl set image deployment/todo-backend todo=${{ env.IMAGE }} --namespace default || true
-        echo "📦 Applying manifests..."
         kubectl apply -f k8s/
         echo "⏳ Waiting for rollout to complete..."
         kubectl rollout status deployment/todo-backend --timeout=180s
         echo "✅ Deployment successful!"
-
-    # Step 8: Disable ACR public access (cleanup for security)
-    - name: Disable ACR public access (cleanup)
-      if: always()
-      run: |
-        echo "🔒 Disabling ACR public access for security..."
-        az acr update -n ${{ secrets.ACR_NAME }} --public-network-enabled false || echo "⚠️  Could not disable public access, skipping."
