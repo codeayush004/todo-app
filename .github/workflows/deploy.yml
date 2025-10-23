@@ -13,7 +13,7 @@ jobs:
     - name: 🧾 Checkout repository
       uses: actions/checkout@v3
 
-    # ✅ Login to Azure using your Service Principal JSON
+    # ✅ Login to Azure using Service Principal credentials
     - name: 🔐 Log in to Azure
       uses: azure/login@v2
       with:
@@ -27,7 +27,7 @@ jobs:
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
-    # ✅ Build and push image with unique tag (commit SHA)
+    # ✅ Build and push Docker image with commit SHA tag
     - name: 🏗️ Build and Push Docker Image
       run: |
         IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/todo-app:${{ github.sha }}
@@ -40,7 +40,7 @@ jobs:
           docker push $IMAGE && break || (echo "⚠️ Push failed (attempt $i/5)... retrying in 15s" && sleep 15)
         done
 
-    # ✅ Connect to AKS Cluster
+    # ✅ Connect to AKS
     - name: 🌐 Set AKS Context
       run: |
         az aks get-credentials \
@@ -48,14 +48,14 @@ jobs:
           --name ${{ secrets.AKS_NAME }} \
           --overwrite-existing
 
-    # ✅ Deploy new image to AKS dynamically
+    # ✅ Apply manifests and update image dynamically
     - name: 🚀 Deploy to AKS
       run: |
-        echo "🔄 Updating AKS deployment image..."
-        kubectl set image deployment/todo-backend todo=${{ env.IMAGE }} --namespace default --record
-
         echo "📦 Applying manifests..."
         kubectl apply -f k8s/
+
+        echo "🔄 Updating AKS deployment image..."
+        kubectl set image deployment/todo-backend todo=${{ env.IMAGE }} --namespace default --record
 
         echo "⏳ Waiting for rollout..."
         kubectl rollout status deployment/todo-backend --timeout=180s
