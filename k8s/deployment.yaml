@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: todo
-        image: ayushtodoapp.azurecr.io/todo-app:latest
+        image: ayushtodoapp.azurecr.io/todo-app:v1
         ports:
         - containerPort: 8000

@@ -3,10 +3,13 @@ kind: Service
 metadata:
   name: todo-service
 spec:
+  type: LoadBalancer
   selector:
     app: todo
   ports:
-  - protocol: TCP
+  - name: backend
     port: 80
     targetPort: 8000
-  type: LoadBalancer
+  - name: frontend
+    port: 8501
+    targetPort: 8501
