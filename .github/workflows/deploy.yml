@@ -33,13 +33,16 @@ jobs:
         docker build -t $IMAGE .
 
         echo "🔄 Pushing image to ACR..."
-        for i in 1 2 3; do
-          docker push $IMAGE && echo "✅ Push succeeded" && break || (echo "⚠️  Push failed, retrying ($i/3)..." && sleep 10)
+        for i in {1..5}; do
+          docker push $IMAGE && break || (echo "⚠️ Push failed, retrying ($i/5)..." && sleep 15)
         done
 
     - name: Set AKS context
       run: |
-        az aks get-credentials --resource-group ${{ secrets.AZ_RESOURCE_GROUP }} --name ${{ secrets.AKS_NAME }} --overwrite-existing
+        az aks get-credentials \
+          --resource-group ${{ secrets.AZ_RESOURCE_GROUP }} \
+          --name ${{ secrets.AKS_NAME }} \
+          --overwrite-existing
 
     - name: Deploy updated image to AKS
       run: |
