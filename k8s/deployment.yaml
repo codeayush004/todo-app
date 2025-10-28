@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
       - name: todo
-        image: ayushtodoapp.azurecr.io/todo-app   # no tag (GitOps will update this)
-        imagePullPolicy: Always                  # always pull the latest pushed image
+        image: ayushtodoapp.azurecr.io/todo-app 
+        imagePullPolicy: Always           
         ports:
         - containerPort: 8000
         - containerPort: 8501
