@@ -1,18 +1,21 @@
 from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
 
-todos = []
-
 @app.get("/")
-def root():
-    return {"message": "Todo App Running on AKS with GitOps"}
+def read_root():
+    return {"message": "Todo backend is running"}
 
 @app.get("/todos")
 def get_todos():
-    return todos
+    return {"todos": ["Task 1", "Task 2"]}
 
 @app.post("/todos")
-def add_todo(item: dict):
-    todos.append(item)
-    return {"status": "added", "item": item}
+def add_todo():
+    return {"message": "Todo added"}
+
+# ✅ Initialize Prometheus metrics
+@app.on_event("startup")
+async def startup():
+    Instrumentator().instrument(app).expose(app)
