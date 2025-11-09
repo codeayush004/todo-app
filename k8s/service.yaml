@@ -2,14 +2,16 @@ apiVersion: v1
 kind: Service
 metadata:
   name: todo-service
+  labels:
+    app: todo   
 spec:
   type: LoadBalancer
   selector:
-    app: todo
+    app: todo      
   ports:
-  - name: backend
-    port: 80
-    targetPort: 8000
-  - name: frontend
-    port: 8501
-    targetPort: 8501
+    - name: backend
+      port: 80
+      targetPort: 8000
+    - name: frontend
+      port: 8501
+      targetPort: 8501

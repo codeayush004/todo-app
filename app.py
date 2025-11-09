@@ -2,9 +2,8 @@ from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
+todos = []
 
-# ✅ Attach Prometheus instrumentation immediately before startup
-Instrumentator().instrument(app).expose(app)
 
 @app.get("/")
 def root():
@@ -12,8 +11,13 @@ def root():
 
 @app.get("/todos")
 def get_todos():
-    return {"todos": ["task1", "task2"]}
+    return {"todos": todos}
 
 @app.post("/todos")
-def add_todo():
-    return {"message": "Todo added successfully"}
+def add_todo(item: dict):
+    todos.append(item)
+    return {"status": "added", "item": item}
+
+
+instrumentator = Instrumentator().instrument(app)
+instrumentator.expose(app, endpoint="/metrics")
