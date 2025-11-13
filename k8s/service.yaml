@@ -3,15 +3,21 @@ kind: Service
 metadata:
   name: todo-service
   labels:
-    app: todo   
+    app: todo
 spec:
-  type: LoadBalancer
+  type: LoadBalancer           
   selector:
-    app: todo      
+    app: todo
   ports:
-    - name: backend
+    - name: http
       port: 80
       targetPort: 8000
-    - name: frontend
+      protocol: TCP
+    - name: metrics
+      port: 8001
+      targetPort: 8000
+      protocol: TCP
+    - name: streamlit
       port: 8501
       targetPort: 8501
+      protocol: TCP
